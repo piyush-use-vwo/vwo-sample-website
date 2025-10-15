@@ -1,7 +1,11 @@
-import * as amplitude from '@amplitude/analytics-browser';
-// import mixpanel from 'mixpanel-browser'; // Uncomment when you have a Mixpanel token
+import {
+  AmplitudeIntegration,
+  BlitzllamaIntegration,
+  VWOIntegration,
+  MixpanelIntegration
+} from '../integrations';
 
-// Analytics service to manage all three SDKs
+// Analytics service to manage all analytics integrations
 class AnalyticsService {
   constructor() {
     this.isInitialized = false;
@@ -27,6 +31,14 @@ class AnalyticsService {
         enabled: true
       }
     };
+
+    // Initialize integration instances
+    this.integrations = {
+      amplitude: new AmplitudeIntegration(this.config.amplitude, this.log.bind(this)),
+      blitzllama: new BlitzllamaIntegration(this.config.blitzllama, this.log.bind(this)),
+      vwo: new VWOIntegration(this.config.vwo, this.log.bind(this)),
+      mixpanel: new MixpanelIntegration(this.config.mixpanel, this.log.bind(this))
+    };
   }
 
   generateSessionId() {
@@ -51,46 +63,65 @@ class AnalyticsService {
     try {
       this.log('Initializing analytics services...');
 
-      // Initialize Amplitude (real SDK)
+      // Initialize all enabled integrations
+      const initPromises = [];
+      
       if (this.config.amplitude.enabled) {
-        try {
-          await amplitude.init(this.config.amplitude.apiKey, {
-            defaultTracking: {
-              sessions: true,
-              pageViews: true,
-              formInteractions: true,
-              fileDownloads: true
-            }
-          });
-          this.log('Amplitude initialized successfully', { apiKey: this.config.amplitude.apiKey });
-        } catch (error) {
-          this.log('Amplitude initialization failed', { error: error.message });
-          this.config.amplitude.enabled = false;
-        }
+        initPromises.push(
+          this.integrations.amplitude.initialize()
+            .then(result => {
+              if (!result.success) {
+                this.config.amplitude.enabled = false;
+              }
+              return result;
+            })
+        );
       }
 
-      // Initialize Mixpanel (mock implementation)
-      if (this.config.mixpanel.enabled) {
-        this.initializeMixpanel();
-        this.log('Mixpanel initialized successfully (mock)');
-      }
-
-      // Initialize Blitzllama (mock implementation since we don't have the actual SDK)
       if (this.config.blitzllama.enabled) {
-        this.initializeBlitzllama();
-        this.log('Blitzllama initialized successfully (mock)');
+        initPromises.push(
+          this.integrations.blitzllama.initialize()
+            .then(result => {
+              if (!result.success) {
+                this.config.blitzllama.enabled = false;
+              }
+              return result;
+            })
+        );
       }
 
-      // Initialize VWO (already loaded via SmartCode in HTML)
       if (this.config.vwo.enabled) {
-        this.initializeVWO();
-        this.log('VWO initialized successfully');
+        initPromises.push(
+          this.integrations.vwo.initialize()
+            .then(result => {
+              if (!result.success) {
+                this.config.vwo.enabled = false;
+              }
+              return result;
+            })
+        );
       }
 
+      if (this.config.mixpanel.enabled) {
+        initPromises.push(
+          this.integrations.mixpanel.initialize()
+            .then(result => {
+              if (!result.success) {
+                this.config.mixpanel.enabled = false;
+              }
+              return result;
+            })
+        );
+      }
+
+      // Wait for all initializations to complete
+      const results = await Promise.all(initPromises);
+      
       this.isInitialized = true;
       this.log('All analytics services initialized', {
         sessionId: this.sessionId,
-        services: ['amplitude', 'blitzllama', 'vwo', 'mixpanel']
+        services: ['amplitude', 'blitzllama', 'vwo', 'mixpanel'],
+        results: results.map(r => r.success ? 'success' : 'failed')
       });
 
     } catch (error) {
@@ -99,178 +130,6 @@ class AnalyticsService {
   }
 
 
-  initializeMixpanel() {
-    // Mock Mixpanel implementation
-    window.mixpanel = {
-      init: (token, options) => {
-        this.log('Mixpanel init called', { token, options });
-      },
-      identify: (userId) => {
-        this.log('Mixpanel identify called', { userId });
-      },
-      track: (eventName, properties) => {
-        this.log('Mixpanel track called', { eventName, properties });
-      },
-      people: {
-        set: (properties) => {
-          this.log('Mixpanel people.set called', { properties });
-        }
-      }
-    };
-  }
-
-  initializeBlitzllama() {
-    // Web-based Blitzllama integration using their API
-    const apiKey = this.config.blitzllama.apiKey;
-    const baseUrl = 'https://api.blitzllama.com';
-    
-    window.blitzllama = {
-      track: async (event, properties = {}) => {
-        this.log('Blitzllama track event', { event, properties });
-        try {
-          const response = await fetch(`${baseUrl}/events`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-              event,
-              properties: {
-                ...properties,
-                timestamp: new Date().toISOString(),
-                sessionId: this.sessionId
-              }
-            })
-          });
-          
-          if (response.ok) {
-            this.log('Blitzllama event tracked successfully', { event });
-            return { success: true, event, properties };
-          } else {
-            this.log('Blitzllama event tracking failed', { status: response.status });
-            return { success: false, error: 'API call failed' };
-          }
-        } catch (error) {
-          this.log('Blitzllama event tracking error', { error: error.message });
-          return { success: false, error: error.message };
-        }
-      },
-      
-      identify: async (userId, properties = {}) => {
-        this.log('Blitzllama identify user', { userId, properties });
-        try {
-          const response = await fetch(`${baseUrl}/users/${userId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-              userId,
-              properties: {
-                ...properties,
-                sessionId: this.sessionId,
-                lastSeen: new Date().toISOString()
-              }
-            })
-          });
-          
-          if (response.ok) {
-            this.log('Blitzllama user identified successfully', { userId });
-            return { success: true, userId, properties };
-          } else {
-            this.log('Blitzllama user identification failed', { status: response.status });
-            return { success: false, error: 'API call failed' };
-          }
-        } catch (error) {
-          this.log('Blitzllama user identification error', { error: error.message });
-          return { success: false, error: error.message };
-        }
-      },
-      
-      page: async (pageName, properties = {}) => {
-        this.log('Blitzllama page view', { pageName, properties });
-        try {
-          const response = await fetch(`${baseUrl}/page-views`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-              page: pageName,
-              properties: {
-                ...properties,
-                timestamp: new Date().toISOString(),
-                sessionId: this.sessionId
-              }
-            })
-          });
-          
-          if (response.ok) {
-            this.log('Blitzllama page view tracked successfully', { pageName });
-            return { success: true, pageName, properties };
-          } else {
-            this.log('Blitzllama page view tracking failed', { status: response.status });
-            return { success: false, error: 'API call failed' };
-          }
-        } catch (error) {
-          this.log('Blitzllama page view tracking error', { error: error.message });
-          return { success: false, error: error.message };
-        }
-      }
-    };
-  }
-
-  initializeVWO() {
-    // VWO is already loaded via SmartCode in HTML
-    // We just need to wait for it to be available and set up tracking
-    const checkVWO = () => {
-      if (window.VWO) {
-        this.log('VWO SDK detected', { 
-          version: window.VWO.getVersion ? window.VWO.getVersion() : 'unknown',
-          accountId: this.config.vwo.accountId 
-        });
-        
-        // Set up VWO tracking methods
-        window.vwoTracker = {
-          track: (eventName, properties = {}) => {
-            this.log('VWO track event', { eventName, properties });
-            // VWO tracks events through their global object
-            if (window.VWO && window.VWO.track) {
-              window.VWO.track(eventName, properties);
-            }
-          },
-          identify: (userId, properties = {}) => {
-            this.log('VWO identify user', { userId, properties });
-            // VWO user identification
-            if (window.VWO && window.VWO.setCustomVariable) {
-              window.VWO.setCustomVariable('userId', userId, 'user');
-              Object.keys(properties).forEach(key => {
-                window.VWO.setCustomVariable(key, properties[key], 'user');
-              });
-            }
-          },
-          page: (pageName, properties = {}) => {
-            this.log('VWO page view', { pageName, properties });
-            // VWO automatically tracks page views, but we can add custom data
-            if (window.VWO && window.VWO.setCustomVariable) {
-              window.VWO.setCustomVariable('pageName', pageName, 'page');
-              Object.keys(properties).forEach(key => {
-                window.VWO.setCustomVariable(key, properties[key], 'page');
-              });
-            }
-          }
-        };
-      } else {
-        // Retry after 100ms if VWO is not yet loaded
-        setTimeout(checkVWO, 100);
-      }
-    };
-    
-    checkVWO();
-  }
 
   // User identification
   identifyUser(userId, userProperties = {}) {
@@ -282,41 +141,15 @@ class AnalyticsService {
 
     this.log('Identifying user across all services', { userId, properties });
 
-    // Amplitude
-    if (this.config.amplitude.enabled) {
-      try {
-        amplitude.setUserId(userId);
-        // Use the correct Amplitude API for setting user properties
-        const identify = new amplitude.Identify();
-        identify.set('sessionId', this.sessionId);
-        Object.keys(userProperties).forEach(key => {
-          identify.set(key, userProperties[key]);
-        });
-        amplitude.identify(identify);
-      } catch (error) {
-        this.log('Amplitude identify failed', { error: error.message });
+    // Call identify on all enabled integrations
+    Object.keys(this.integrations).forEach(serviceName => {
+      const integration = this.integrations[serviceName];
+      const config = this.config[serviceName];
+      
+      if (config.enabled) {
+        integration.identifyUser(userId, properties);
       }
-    }
-
-    // Mixpanel
-    if (this.config.mixpanel.enabled && window.mixpanel) {
-      try {
-        window.mixpanel.identify(userId);
-        window.mixpanel.people.set(properties);
-      } catch (error) {
-        this.log('Mixpanel identify failed', { error: error.message });
-      }
-    }
-
-    // Blitzllama
-    if (this.config.blitzllama.enabled && window.blitzllama) {
-      window.blitzllama.identify(userId, properties);
-    }
-
-    // VWO
-    if (this.config.vwo.enabled && window.vwoTracker) {
-      window.vwoTracker.identify(userId, properties);
-    }
+    });
   }
 
   // Track events
@@ -329,33 +162,15 @@ class AnalyticsService {
 
     this.log('Tracking event across all services', { eventName, properties: eventProperties });
 
-    // Amplitude
-    if (this.config.amplitude.enabled) {
-      try {
-        amplitude.track(eventName, eventProperties);
-      } catch (error) {
-        this.log('Amplitude track failed', { error: error.message, eventName });
+    // Call trackEvent on all enabled integrations
+    Object.keys(this.integrations).forEach(serviceName => {
+      const integration = this.integrations[serviceName];
+      const config = this.config[serviceName];
+      
+      if (config.enabled) {
+        integration.trackEvent(eventName, eventProperties);
       }
-    }
-
-    // Mixpanel
-    if (this.config.mixpanel.enabled && window.mixpanel) {
-      try {
-        window.mixpanel.track(eventName, eventProperties);
-      } catch (error) {
-        this.log('Mixpanel track failed', { error: error.message, eventName });
-      }
-    }
-
-    // Blitzllama
-    if (this.config.blitzllama.enabled && window.blitzllama) {
-      window.blitzllama.track(eventName, eventProperties);
-    }
-
-    // VWO
-    if (this.config.vwo.enabled && window.vwoTracker) {
-      window.vwoTracker.track(eventName, eventProperties);
-    }
+    });
   }
 
   // Track page views
@@ -368,45 +183,32 @@ class AnalyticsService {
 
     this.log('Tracking page view across all services', { pageName, properties: pageProperties });
 
-    // Amplitude
-    if (this.config.amplitude.enabled) {
-      try {
-        amplitude.track('Page View', { page: pageName, ...pageProperties });
-      } catch (error) {
-        this.log('Amplitude page view failed', { error: error.message, pageName });
+    // Call trackPageView on all enabled integrations
+    Object.keys(this.integrations).forEach(serviceName => {
+      const integration = this.integrations[serviceName];
+      const config = this.config[serviceName];
+      
+      if (config.enabled) {
+        integration.trackPageView(pageName, pageProperties);
       }
-    }
-
-    // Mixpanel
-    if (this.config.mixpanel.enabled && window.mixpanel) {
-      try {
-        window.mixpanel.track('Page View', { page: pageName, ...pageProperties });
-      } catch (error) {
-        this.log('Mixpanel page view failed', { error: error.message, pageName });
-      }
-    }
-
-    // Blitzllama
-    if (this.config.blitzllama.enabled && window.blitzllama) {
-      window.blitzllama.page(pageName, pageProperties);
-    }
-
-    // VWO
-    if (this.config.vwo.enabled && window.vwoTracker) {
-      window.vwoTracker.page(pageName, pageProperties);
-    }
+    });
   }
 
   // Get connection status
   getConnectionStatus() {
-    return {
-      amplitude: this.config.amplitude.enabled,
-      mixpanel: this.config.mixpanel.enabled,
-      blitzllama: this.config.blitzllama.enabled,
-      vwo: this.config.vwo.enabled,
+    const status = {
       sessionId: this.sessionId,
-      isInitialized: this.isInitialized
+      isInitialized: this.isInitialized,
+      services: {}
     };
+
+    // Get status from each integration
+    Object.keys(this.integrations).forEach(serviceName => {
+      const integration = this.integrations[serviceName];
+      status.services[serviceName] = integration.getStatus();
+    });
+
+    return status;
   }
 
   // Get logs
