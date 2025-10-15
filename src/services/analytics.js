@@ -4,6 +4,7 @@ import {
   VWOIntegration,
   MixpanelIntegration
 } from '../integrations';
+import authService from './auth';
 
 // Analytics service to manage all analytics integrations
 class AnalyticsService {
@@ -219,6 +220,30 @@ class AnalyticsService {
   // Clear logs
   clearLogs() {
     this.logs = [];
+  }
+
+  // Clear all analytics data (for debugging/migration)
+  clearAllData() {
+    try {
+      // Clear Amplitude data
+      if (this.integrations.amplitude && this.integrations.amplitude.clearAmplitudeData) {
+        this.integrations.amplitude.clearAmplitudeData();
+      }
+      
+      // Clear auth data
+      if (authService && authService.clearOldData) {
+        authService.clearOldData();
+      }
+      
+      // Clear our logs
+      this.clearLogs();
+      
+      this.log('Cleared all analytics data', {
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      this.log('Error clearing analytics data', { error: error.message });
+    }
   }
 }
 

@@ -16,6 +16,9 @@ class AmplitudeIntegration {
    */
   async initialize() {
     try {
+      // Clear any existing Amplitude data first
+      this.clearAmplitudeData();
+      
       await amplitude.init(this.config.apiKey, {
         defaultTracking: {
           sessions: true,
@@ -29,6 +32,26 @@ class AmplitudeIntegration {
       if (!amplitude.getDeviceId()) {
         amplitude.setDeviceId(this.generateDeviceId());
       }
+      
+      // Clear any existing user ID that might be invalid
+      const currentUserId = amplitude.getUserId();
+      if (currentUserId && currentUserId.length < 5) {
+        this.logger('Clearing invalid user ID from Amplitude', { 
+          invalidUserId: currentUserId 
+        });
+        amplitude.setUserId(null);
+      }
+      
+      // Override the setUserId method to always validate user IDs
+      const originalSetUserId = amplitude.setUserId;
+      amplitude.setUserId = (userId) => {
+        const validUserId = this.validateUserId(userId);
+        this.logger('Amplitude setUserId called', { 
+          originalUserId: userId, 
+          validUserId 
+        });
+        return originalSetUserId.call(amplitude, validUserId);
+      };
       
       this.isInitialized = true;
       this.logger('Amplitude initialized successfully', { 
@@ -112,6 +135,30 @@ class AmplitudeIntegration {
    */
   generateDeviceId() {
     return `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  }
+
+  /**
+   * Clear Amplitude's localStorage data to start fresh
+   */
+  clearAmplitudeData() {
+    try {
+      // Clear Amplitude's localStorage keys
+      const amplitudeKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith('amplitude_') || 
+        key.startsWith('amp_') ||
+        key.includes('amplitude')
+      );
+      
+      amplitudeKeys.forEach(key => {
+        localStorage.removeItem(key);
+      });
+      
+      this.logger('Cleared Amplitude localStorage data', { 
+        clearedKeys: amplitudeKeys 
+      });
+    } catch (error) {
+      this.logger('Error clearing Amplitude data', { error: error.message });
+    }
   }
 
   /**

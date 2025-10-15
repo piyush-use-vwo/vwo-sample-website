@@ -14,6 +14,7 @@ function App() {
       try {
         // Clear any old localStorage data first
         authService.clearOldData();
+        analyticsService.clearAllData();
         
         await analyticsService.initialize();
         
