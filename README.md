@@ -13,9 +13,9 @@ A React application that demonstrates integration with four major analytics plat
 
 ## Demo Credentials
 
-- **Admin**: admin@example.com / admin123
-- **User**: user@example.com / user123  
-- **Demo**: demo@example.com / demo123
+- **Admin**: admin@example.com / admin123 (User ID: admin_user_001)
+- **User**: user@example.com / user123 (User ID: regular_user_002)
+- **Demo**: demo@example.com / demo123 (User ID: demo_user_003)
 
 ## Quick Start
 

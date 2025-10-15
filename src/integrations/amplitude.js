@@ -25,9 +25,15 @@ class AmplitudeIntegration {
         }
       });
       
+      // Set a device ID if not already set
+      if (!amplitude.getDeviceId()) {
+        amplitude.setDeviceId(this.generateDeviceId());
+      }
+      
       this.isInitialized = true;
       this.logger('Amplitude initialized successfully', { 
-        apiKey: this.config.apiKey.substring(0, 8) + '...' // Log partial key for security
+        apiKey: this.config.apiKey.substring(0, 8) + '...', // Log partial key for security
+        deviceId: amplitude.getDeviceId()
       });
       
       return { success: true };
@@ -49,8 +55,16 @@ class AmplitudeIntegration {
     }
 
     try {
+      // Validate and format user ID (Amplitude requires at least 5 characters)
+      const validUserId = this.validateUserId(userId);
+      
       // Set user ID
-      amplitude.setUserId(userId);
+      amplitude.setUserId(validUserId);
+      
+      // Set device ID if not already set
+      if (!amplitude.getDeviceId()) {
+        amplitude.setDeviceId(this.generateDeviceId());
+      }
       
       // Create identify object and set properties
       const identify = new amplitude.Identify();
@@ -61,12 +75,43 @@ class AmplitudeIntegration {
       // Apply identification
       amplitude.identify(identify);
       
-      this.logger('Amplitude user identified', { userId, properties: userProperties });
+      this.logger('Amplitude user identified', { 
+        originalUserId: userId, 
+        validUserId, 
+        deviceId: amplitude.getDeviceId(),
+        properties: userProperties 
+      });
       return { success: true };
     } catch (error) {
       this.logger('Amplitude identify failed', { error: error.message, userId });
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Validate and format user ID for Amplitude
+   * @param {string} userId - Original user ID
+   * @returns {string} - Valid user ID
+   */
+  validateUserId(userId) {
+    if (!userId || typeof userId !== 'string') {
+      return `anonymous_${Date.now()}`;
+    }
+    
+    // Amplitude requires user ID to be at least 5 characters
+    if (userId.length < 5) {
+      return `user_${userId}_${Date.now()}`;
+    }
+    
+    return userId;
+  }
+
+  /**
+   * Generate a device ID
+   * @returns {string} - Device ID
+   */
+  generateDeviceId() {
+    return `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   /**

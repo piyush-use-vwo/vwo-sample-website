@@ -262,8 +262,11 @@ const Login = ({ onLoginSuccess }) => {
             <h4 style={{ margin: '0 0 15px 0', color: '#495057' }}>Demo Credentials:</h4>
             <div style={{ fontSize: '14px', color: '#6c757d' }}>
               <div><strong>Admin:</strong> admin@example.com / admin123</div>
+              <div style={{ fontSize: '12px', color: '#999', marginLeft: '10px' }}>User ID: admin_user_001</div>
               <div><strong>User:</strong> user@example.com / user123</div>
+              <div style={{ fontSize: '12px', color: '#999', marginLeft: '10px' }}>User ID: regular_user_002</div>
               <div><strong>Demo:</strong> demo@example.com / demo123</div>
+              <div style={{ fontSize: '12px', color: '#999', marginLeft: '10px' }}>User ID: demo_user_003</div>
             </div>
           </div>
         </div>

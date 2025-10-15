@@ -42,11 +42,11 @@ Each integration takes two parameters:
 - **Status**: ✅ Fully functional
 
 ### 2. Blitzllama (`blitzllama.js`)
-- **Type**: Web API integration
-- **API**: RESTful API calls to `https://api.blitzllama.com`
+- **Type**: Mock implementation (API endpoints not documented)
+- **API**: Would use RESTful API calls to `https://api.blitzllama.com`
 - **API Key**: `key_BJMzppuLgKVPseZ`
 - **Features**: User identification, event tracking, page views, user creation
-- **Status**: ✅ Fully functional
+- **Status**: ⚠️ Mock implementation (actual API endpoints not publicly documented)
 
 ### 3. VWO (`vwo.js`)
 - **Type**: SmartCode integration

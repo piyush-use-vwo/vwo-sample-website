@@ -12,6 +12,9 @@ function App() {
     // Initialize analytics service
     const initializeApp = async () => {
       try {
+        // Clear any old localStorage data first
+        authService.clearOldData();
+        
         await analyticsService.initialize();
         
         // Check if user is already logged in

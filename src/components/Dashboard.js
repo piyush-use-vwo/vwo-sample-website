@@ -99,26 +99,36 @@ const Dashboard = ({ user, onLogout }) => {
       <div className="card">
         <h2>Analytics Services Status</h2>
         <div className="grid">
-          {Object.keys(connectionStatus.services).map(serviceName => {
-            const service = connectionStatus.services[serviceName];
-            return (
-              <div key={serviceName} className="analytics-section">
-                <h3>
-                  {getStatusIndicator(service.enabled && service.initialized)}
-                  {service.name}
-                </h3>
-                <p>Status: {service.enabled && service.initialized ? 'Connected' : 'Disconnected'}</p>
-                <p>Enabled: {service.enabled ? 'Yes' : 'No'}</p>
-                <p>Initialized: {service.initialized ? 'Yes' : 'No'}</p>
-                {service.apiKey && <p>API Key: {service.apiKey}</p>}
-                {service.token && <p>Token: {service.token}</p>}
-                {service.accountId && <p>Account ID: {service.accountId}</p>}
-                {service.version && <p>Version: {service.version}</p>}
-                {service.implementation && <p>Implementation: {service.implementation}</p>}
-                <p>Session ID: {connectionStatus.sessionId}</p>
-              </div>
-            );
-          })}
+          {connectionStatus.services && Object.keys(connectionStatus.services).length > 0 ? (
+            Object.keys(connectionStatus.services).map(serviceName => {
+              const service = connectionStatus.services[serviceName];
+              return (
+                <div key={serviceName} className="analytics-section">
+                  <h3>
+                    {getStatusIndicator(service.enabled && service.initialized)}
+                    {service.name}
+                  </h3>
+                  <p>Status: {service.enabled && service.initialized ? 'Connected' : 'Disconnected'}</p>
+                  <p>Enabled: {service.enabled ? 'Yes' : 'No'}</p>
+                  <p>Initialized: {service.initialized ? 'Yes' : 'No'}</p>
+                  {service.apiKey && <p>API Key: {service.apiKey}</p>}
+                  {service.token && <p>Token: {service.token}</p>}
+                  {service.accountId && <p>Account ID: {service.accountId}</p>}
+                  {service.version && <p>Version: {service.version}</p>}
+                  {service.implementation && <p>Implementation: {service.implementation}</p>}
+                  {service.mode && <p>Mode: {service.mode}</p>}
+                  {service.note && <p style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>Note: {service.note}</p>}
+                  <p>Session ID: {connectionStatus.sessionId || 'Loading...'}</p>
+                </div>
+              );
+            })
+          ) : (
+            <div className="analytics-section">
+              <h3>Loading Analytics Services...</h3>
+              <p>Initializing integrations...</p>
+              <p>Session ID: {connectionStatus.sessionId || 'Loading...'}</p>
+            </div>
+          )}
         </div>
       </div>
 

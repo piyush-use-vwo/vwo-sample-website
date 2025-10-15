@@ -10,9 +10,9 @@ class AuthService {
 
   // Mock user database
   mockUsers = [
-    { id: '1', email: 'admin@example.com', password: 'admin123', name: 'Admin User', role: 'admin' },
-    { id: '2', email: 'user@example.com', password: 'user123', name: 'Regular User', role: 'user' },
-    { id: '3', email: 'demo@example.com', password: 'demo123', name: 'Demo User', role: 'demo' }
+    { id: 'admin_user_001', email: 'admin@example.com', password: 'admin123', name: 'Admin User', role: 'admin' },
+    { id: 'regular_user_002', email: 'user@example.com', password: 'user123', name: 'Regular User', role: 'user' },
+    { id: 'demo_user_003', email: 'demo@example.com', password: 'demo123', name: 'Demo User', role: 'demo' }
   ];
 
   // Generate a mock session token
@@ -64,6 +64,28 @@ class AuthService {
     localStorage.removeItem('mockIsAuthenticated');
   }
 
+  // Clear old localStorage data (for migration)
+  clearOldData() {
+    // Clear any old user data that might have short IDs
+    const storedUser = localStorage.getItem('mockUser');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        if (user.id && user.id.length < 5) {
+          localStorage.removeItem('mockUser');
+          localStorage.removeItem('mockSessionToken');
+          localStorage.removeItem('mockIsAuthenticated');
+          console.log('Cleared old user data with short ID format');
+        }
+      } catch (error) {
+        // If parsing fails, clear the data
+        localStorage.removeItem('mockUser');
+        localStorage.removeItem('mockSessionToken');
+        localStorage.removeItem('mockIsAuthenticated');
+      }
+    }
+  }
+
   // Check if user is authenticated
   isLoggedIn() {
     return this.isAuthenticated;
@@ -86,12 +108,37 @@ class AuthService {
     const storedAuth = localStorage.getItem('mockIsAuthenticated');
 
     if (storedUser && storedToken && storedAuth === 'true') {
-      this.currentUser = JSON.parse(storedUser);
+      const user = JSON.parse(storedUser);
+      
+      // Check if user has old short ID format and update it
+      if (user.id && user.id.length < 5) {
+        const updatedUser = this.updateUserToNewFormat(user);
+        this.currentUser = updatedUser;
+        // Update localStorage with new format
+        localStorage.setItem('mockUser', JSON.stringify(updatedUser));
+      } else {
+        this.currentUser = user;
+      }
+      
       this.sessionToken = storedToken;
       this.isAuthenticated = true;
       return true;
     }
     return false;
+  }
+
+  // Update old user format to new format
+  updateUserToNewFormat(oldUser) {
+    const idMapping = {
+      '1': 'admin_user_001',
+      '2': 'regular_user_002', 
+      '3': 'demo_user_003'
+    };
+    
+    return {
+      ...oldUser,
+      id: idMapping[oldUser.id] || oldUser.id
+    };
   }
 
   // Mock user registration
