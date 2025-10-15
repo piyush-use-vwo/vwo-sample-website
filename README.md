@@ -1,12 +1,12 @@
 # React Mock User Portal with Analytics Integration
 
-A React application that demonstrates integration with three major analytics platforms: Amplitude, Mixpanel, and Blitzllama. The app includes mock authentication and comprehensive event tracking capabilities.
+A React application that demonstrates integration with four major analytics platforms: Amplitude, Mixpanel, Blitzllama, and VWO (Visual Website Optimizer). The app includes mock authentication and comprehensive event tracking capabilities.
 
 ## Features
 
 - **Mock Authentication System**: Login/register with persistent sessions
 - **Session ID Generation**: Frontend-only session management
-- **Multi-Platform Analytics**: Integrated with Amplitude, Mixpanel, and Blitzllama
+- **Multi-Platform Analytics**: Integrated with Amplitude, Mixpanel, Blitzllama, and VWO
 - **Real-time Event Tracking**: Track custom events across all platforms
 - **Analytics Dashboard**: Monitor connection status and view logs
 - **User Management**: Mock user database with different roles
@@ -41,6 +41,10 @@ A React application that demonstrates integration with three major analytics pla
      blitzllama: {
        apiKey: 'YOUR_BLITZLLAMA_API_KEY', // Replace with your actual API key
        enabled: true
+     },
+     vwo: {
+       accountId: '3000655', // VWO account ID from SmartCode
+       enabled: true
      }
    };
    ```
@@ -69,6 +73,11 @@ A React application that demonstrates integration with three major analytics pla
 - **Implementation**: Mock implementation (replace with actual SDK)
 - **Features**: Custom event tracking and user identification
 - **Setup**: Get your API key from [Blitzllama Dashboard](https://dashboard.blitzllama.com/)
+
+### VWO (Visual Website Optimizer)
+- **Implementation**: SmartCode integration (already included in HTML)
+- **Features**: A/B testing, conversion tracking, user segmentation
+- **Setup**: Account ID 3000655 is already configured in the SmartCode
 
 ## Project Structure
 
@@ -135,6 +144,7 @@ You can also use environment variables for API keys:
 REACT_APP_AMPLITUDE_API_KEY=your_amplitude_key
 REACT_APP_MIXPANEL_TOKEN=your_mixpanel_token
 REACT_APP_BLITZLLAMA_API_KEY=your_blitzllama_key
+REACT_APP_VWO_ACCOUNT_ID=3000655
 ```
 
 ### Disabling Services

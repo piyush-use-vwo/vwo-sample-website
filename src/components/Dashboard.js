@@ -125,6 +125,16 @@ const Dashboard = ({ user, onLogout }) => {
             <p>Status: {connectionStatus.blitzllama ? 'Connected' : 'Disconnected'}</p>
             <p>Session ID: {connectionStatus.sessionId}</p>
           </div>
+          
+          <div className="analytics-section">
+            <h3>
+              {getStatusIndicator(connectionStatus.vwo)}
+              VWO (Visual Website Optimizer)
+            </h3>
+            <p>Status: {connectionStatus.vwo ? 'Connected' : 'Disconnected'}</p>
+            <p>Account ID: 3000655</p>
+            <p>Session ID: {connectionStatus.sessionId}</p>
+          </div>
         </div>
       </div>
 
